@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aurora">
+<title>AURORA 3.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400;1,700;1,900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#B79CF0;
+  --text-scale:1;
+  --tp:rgba(255,255,255,0.96);
+  --ts:rgba(255,255,255,0.62);
+  --tt:rgba(255,255,255,0.38);
+  --glass:rgba(255,255,255,0.09);
+  --glass-strong:rgba(255,255,255,0.16);
+  --gb:rgba(255,255,255,0.22);
+  --bgc1:rgba(123,110,246,0.45);
+  --bgc2:rgba(110,201,138,0.22);
+  --bgc3:rgba(227,156,124,0.20);
+  --bgbase1:#0B0A12;
+  --bgbase2:#12101E;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%}
+body{
+  font-family:'Roboto',sans-serif;
+  font-size:calc(15px * var(--text-scale));
+  color:var(--tp);
+  background:var(--bgbase1);
+  min-height:100vh;min-height:-webkit-fill-available;
+  -webkit-tap-highlight-color:transparent;
+  overflow-x:hidden;
+}
+
+/* ============ BACKGROUND ============ */
+#bg{position:fixed;inset:0;z-index:0;overflow:hidden}
+#bg-grad{position:absolute;inset:0;transition:background .6s ease;
+  background:
+    radial-gradient(ellipse 900px 700px at 12% 8%, var(--bgc1), transparent 60%),
+    radial-gradient(ellipse 800px 900px at 88% 30%, var(--bgc2), transparent 55%),
+    radial-gradient(ellipse 1000px 800px at 40% 100%, var(--bgc3), transparent 55%),
+    linear-gradient(180deg, var(--bgbase1) 0%, var(--bgbase2) 55%, var(--bgbase1) 100%);
+}
+#bg-photo{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity .6s}
+#bg-photo.on{opacity:0.6}
+.blob{position:absolute;border-radius:50%;filter:blur(85px);opacity:0.5;pointer-events:none;transition:background .6s}
+.b1{width:46vw;height:46vw;max-width:520px;max-height:520px;background:#7B6EF6;top:-12%;left:-8%;animation:f1 24s ease-in-out infinite}
+.b2{width:40vw;height:40vw;max-width:460px;max-height:460px;background:#6EC98A;bottom:-14%;right:-6%;animation:f2 28s ease-in-out infinite}
+.b3{width:32vw;height:32vw;max-width:360px;max-height:360px;background:#E39C7C;top:38%;right:14%;animation:f3 21s ease-in-out infinite}
+@keyframes f1{0%,100%{transform:translate(0,0)}50%{transform:translate(70px,50px)}}
+@keyframes f2{0%,100%{transform:translate(0,0)}50%{transform:translate(-60px,-40px)}}
+@keyframes f3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-40px,60px) scale(1.1)}}
+#bg-noise{position:absolute;inset:0;opacity:0.14;mix-blend-mode:soft-light;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:180px 180px}
+#bg-vig{position:absolute;inset:0;background:radial-gradient(ellipse at center, transparent 42%, rgba(0,0,0,0.4) 100%)}
+
+/* ============ LIQUID GLASS (real refraction) ============ */
+.lg{position:relative;border-radius:22px;overflow:hidden;
+  box-shadow:0 10px 34px rgba(0,0,0,0.35)}
+.lg::before{content:'';position:absolute;inset:0;z-index:0;
+  -webkit-backdrop-filter:blur(16px) saturate(1.5);
+  backdrop-filter:blur(16px) saturate(1.5)}
+@supports (backdrop-filter: url(#glass-dist)){
+  .lg::before{backdrop-filter:url(#glass-dist) blur(9px) saturate(1.55) brightness(1.04)}
+}
+.lg::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:var(--glass);
+  border-radius:inherit;
+  box-shadow:
+    inset 2px 2px 1px -1px rgba(255,255,255,0.45),
+    inset -1px -1px 1px 0 rgba(255,255,255,0.18),
+    inset 0 0 40px rgba(255,255,255,0.03);
+  border:1px solid var(--gb)}
+.lg>*{position:relative;z-index:2}
+.lg-strong::after{background:var(--glass-strong)}
+
+/* ============ LAYOUT ============ */
+#sidebar{display:none}
+#main{position:relative;z-index:2;padding:calc(var(--safe-t) + 22px) 18px calc(var(--safe-b) + 96px);max-width:1060px;margin:0 auto}
+#bnav{position:fixed;left:0;right:0;bottom:0;z-index:50;
+  padding:10px 12px calc(var(--safe-b) + 10px);
+  display:flex;justify-content:center;align-items:center;gap:7px}
+.bn{display:flex;align-items:center;justify-content:center;
+  padding:11px 15px;border-radius:999px;cursor:pointer;
+  background:var(--glass);
+  -webkit-backdrop-filter:blur(20px) saturate(1.4);backdrop-filter:blur(20px) saturate(1.4);
+  border:1px solid var(--gb);
+  box-shadow:0 6px 20px rgba(0,0,0,0.22), inset 1px 1px 1px -0.5px rgba(255,255,255,0.4);
+  transition:all .25s cubic-bezier(.34,1.3,.64,1)}
+.bn:active{transform:scale(0.9)}
+.bn.active{background:rgba(255,255,255,0.94);border-color:transparent}
+.bn span{font-size:12px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:0.01em;color:var(--ts);white-space:nowrap;transition:color .2s}
+.bn.active span{color:#17141f}
+
+@media(min-width:900px){
+  #bnav{display:none}
+  body{display:flex}
+  #sidebar{display:flex;flex-direction:column;gap:6px;
+    width:250px;min-width:250px;height:100vh;position:sticky;top:0;z-index:5;
+    padding:26px 14px;
+    background:rgba(12,10,20,0.42);
+    -webkit-backdrop-filter:blur(30px) saturate(1.4);backdrop-filter:blur(30px) saturate(1.4);
+    border-right:1px solid var(--gb)}
+  #main{flex:1;padding:40px 48px 80px;margin:0}
+}
+.sb-logo{font-weight:900;font-style:italic;font-size:23px;letter-spacing:-0.015em;text-transform:uppercase;padding:0 10px 16px;border-bottom:1px solid rgba(255,255,255,0.12);margin-bottom:12px}
+.sb-kotva{padding:13px 14px;margin-bottom:14px;border-radius:18px}
+.sb-kotva .k-label{font-size:9.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--tt);font-weight:700;font-style:italic;margin-bottom:6px}
+.sb-kotva .k-text{font-size:12.5px;font-style:italic;line-height:1.5;color:rgba(255,255,255,0.88)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;cursor:pointer;color:var(--ts);font-size:14px;font-weight:500;transition:all .22s cubic-bezier(.34,1.2,.64,1)}
+.sb-item:hover{background:var(--glass);color:var(--tp)}
+.sb-item:active{transform:scale(0.96)}
+.sb-item.active{background:var(--glass-strong);color:var(--tp);font-weight:700;
+  border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow:0 4px 18px color-mix(in srgb, var(--accent) 30%, transparent)}
+.sb-foot{margin-top:auto;font-size:11px;color:var(--tt);padding:12px 10px 0;border-top:1px solid rgba(255,255,255,0.1)}
+
+/* ============ PAGES & TYPO ============ */
+.page{display:none}
+.page.active{display:block;animation:pin .5s cubic-bezier(.22,1,.36,1)}
+@keyframes pin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.h-eyebrow{font-size:10.5px;letter-spacing:0.2em;text-transform:uppercase;color:var(--tt);font-weight:700;font-style:italic;margin-bottom:6px;text-shadow:0 1px 8px rgba(0,0,0,0.5)}
+.h-page{font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-0.015em;
+  font-size:clamp(30px, 6vw, 42px);line-height:1.02;margin-bottom:8px;
+  text-shadow:0 2px 24px rgba(0,0,0,0.55)}
+.h-sub{color:var(--ts);font-size:1.02em;max-width:560px;margin-bottom:26px;line-height:1.55;text-shadow:0 1px 10px rgba(0,0,0,0.45)}
+.sec{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ts);font-weight:900;font-style:italic;margin:26px 0 12px;text-shadow:0 1px 8px rgba(0,0,0,0.45);display:flex;align-items:center;gap:8px}
+.sec:first-of-type{margin-top:0}
+
+/* reveal stagger */
+.rv{opacity:0;transform:translateY(16px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}
+.rv.in{opacity:1;transform:translateY(0)}
+
+/* ============ COMPONENTS ============ */
+.card{padding:18px}
+.grid2{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:700px){.grid2{grid-template-columns:1fr 1fr}}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(min-width:700px){.tiles{grid-template-columns:repeat(4,1fr)}}
+.tile{padding:15px 16px}
+.tile .t-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--tt);font-weight:700;font-style:italic;margin-bottom:7px}
+.tile .t-val{font-weight:900;font-style:italic;font-size:1.65em;letter-spacing:-0.02em;font-variant-numeric:tabular-nums}
+.tbar{height:5px;border-radius:3px;background:rgba(255,255,255,0.12);margin-top:9px;overflow:hidden}
+.tbar i{display:block;height:100%;border-radius:3px;background:var(--accent);transition:width .8s cubic-bezier(.22,1,.36,1)}
+
+input[type=text],textarea{
+  width:100%;background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.18);border-radius:14px;
+  padding:12px 14px;font-size:14px;font-family:'Roboto',sans-serif;color:#fff;outline:none;
+  transition:border-color .2s}
+input[type=text]:focus,textarea:focus{border-color:color-mix(in srgb, var(--accent) 60%, transparent)}
+input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.32)}
+textarea{resize:vertical;min-height:64px}
+select{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:#fff;font-size:13px;padding:10px 12px;font-family:'Roboto',sans-serif;outline:none}
+select option{background:#1a1626;color:#fff}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=color]{width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;background:transparent;padding:0}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px 20px;border-radius:999px;border:none;cursor:pointer;
+  background:rgba(255,255,255,0.94);color:#17141f;
+  font-family:'Roboto',sans-serif;font-weight:900;font-style:italic;font-size:12.5px;
+  text-transform:uppercase;letter-spacing:0.02em;
+  box-shadow:0 6px 20px rgba(0,0,0,0.25);
+  transition:transform .22s cubic-bezier(.34,1.3,.64,1)}
+.btn:active{transform:scale(0.93)}
+.btn-ghost{background:var(--glass);color:var(--tp);border:1px solid var(--gb);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.btn-full{width:100%}
+.icon-btn{width:42px;height:42px;min-width:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  background:var(--glass);border:1px solid var(--gb);color:#fff;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  transition:transform .2s}
+.icon-btn:active{transform:scale(0.88)}
+.del{color:rgba(255,130,130,0.8);cursor:pointer;font-size:16px;padding:4px 8px;transition:transform .15s}
+.del:active{transform:scale(0.8)}
+
+.pill-row{display:flex;gap:8px;flex-wrap:wrap}
+.pill{padding:9px 15px;border-radius:999px;font-size:12.5px;font-weight:500;color:var(--ts);cursor:pointer;
+  background:var(--glass);border:1px solid var(--gb);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  transition:all .22s cubic-bezier(.34,1.2,.64,1)}
+.pill:active{transform:scale(0.93)}
+.pill.on{background:rgba(255,255,255,0.94);color:#17141f;font-weight:700;border-color:transparent}
+
+.row{display:flex;gap:9px;align-items:center}
+.list-item{display:flex;align-items:center;gap:11px;padding:14px 16px;margin-bottom:9px}
+.list-item .li-txt{flex:1;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini-tag{font-size:9.5px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:0.06em;
+  padding:5px 10px;border-radius:8px;background:color-mix(in srgb, var(--accent) 22%, transparent);
+  color:color-mix(in srgb, var(--accent) 80%, white);white-space:nowrap}
+.status-tag{font-size:10.5px;padding:6px 11px;border-radius:9px;background:rgba(255,255,255,0.12);color:var(--ts);cursor:pointer;white-space:nowrap}
+.empty{text-align:center;padding:28px 16px;color:var(--tt);font-size:13px;font-style:italic}
+
+/* habits */
+.habit{padding:14px 16px;margin-bottom:10px}
+.habit-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}
+.habit-name{font-size:14px;font-weight:500}
+.habit-pct{font-size:11px;font-weight:900;font-style:italic;color:var(--ts)}
+.hdays{display:flex;gap:6px}
+.hday{flex:1;height:30px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;color:var(--tt);
+  border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.05);
+  transition:all .2s cubic-bezier(.34,1.2,.64,1)}
+.hday:active{transform:scale(0.85)}
+.hday.on{background:rgba(255,255,255,0.92);color:#17141f;border-color:transparent;font-weight:900}
+
+/* board masonry */
+.wall{column-count:2;column-gap:12px}
+@media(min-width:700px){.wall{column-count:3}}
+@media(min-width:1100px){.wall{column-count:4}}
+.wcard{break-inside:avoid;margin-bottom:12px;overflow:hidden;cursor:pointer;transition:transform .25s cubic-bezier(.34,1.2,.64,1)}
+.wcard:active{transform:scale(0.97)}
+.wcard img{width:100%;display:block;border-radius:inherit}
+.wcard .w-note{padding:16px;font-size:14px;line-height:1.5}
+.wcard .w-date{font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;color:var(--tt);font-weight:700;font-style:italic;padding:0 16px 13px}
+
+/* life wheel */
+.lw-row{display:flex;align-items:center;gap:12px;padding:9px 0}
+.lw-name{font-size:12.5px;font-weight:500;width:118px;min-width:118px;color:var(--ts)}
+.lw-bar{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.1);overflow:hidden;cursor:pointer}
+.lw-bar i{display:block;height:100%;border-radius:4px;background:var(--accent);transition:width .5s cubic-bezier(.22,1,.36,1)}
+.lw-val{font-size:12px;font-weight:900;font-style:italic;width:34px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* modal */
+#modal-bg{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,0.5);display:none;align-items:flex-end;justify-content:center;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+@media(min-width:700px){#modal-bg{align-items:center}}
+#modal-bg.open{display:flex}
+#modal{width:100%;max-width:480px;padding:22px 20px calc(var(--safe-b) + 22px);border-radius:26px 26px 0 0}
+@media(min-width:700px){#modal{border-radius:26px;padding-bottom:22px}}
+.m-title{font-weight:900;font-style:italic;text-transform:uppercase;font-size:17px;margin-bottom:16px}
+
+/* swatches */
+.swatch{width:36px;height:36px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .2s cubic-bezier(.34,1.3,.64,1)}
+.swatch:active{transform:scale(0.85)}
+.swatch.on{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,0.18)}
+
+.freedom{height:16px;border-radius:9px;background:rgba(255,255,255,0.1);overflow:hidden;margin:12px 0 8px}
+.freedom i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 50%, white));transition:width .9s cubic-bezier(.22,1,.36,1)}
+
+.toast{position:fixed;left:50%;bottom:calc(var(--safe-b) + 86px);transform:translateX(-50%) translateY(20px);z-index:99;
+  padding:12px 22px;border-radius:999px;font-size:13px;font-weight:700;font-style:italic;
+  background:rgba(255,255,255,0.94);color:#17141f;opacity:0;pointer-events:none;
+  transition:all .35s cubic-bezier(.34,1.3,.64,1)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- SVG filter: real light refraction for liquid glass -->
+<svg style="position:absolute;width:0;height:0" aria-hidden="true">
+  <filter id="glass-dist" x="-20%" y="-20%" width="140%" height="140%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.012 0.014" numOctaves="2" seed="7" result="noise"/>
+    <feGaussianBlur in="noise" stdDeviation="2.2" result="soft"/>
+    <feDisplacementMap in="SourceGraphic" in2="soft" scale="52" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<div id="bg">
+  <div id="bg-grad"></div>
+  <div id="bg-photo"></div>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div id="bg-noise"></div>
+  <div id="bg-vig"></div>
+</div>
+
+<!-- DESKTOP SIDEBAR -->
+<aside id="sidebar">
+  <div class="sb-logo">Aurora</div>
+  <div class="sb-kotva lg"><div>
+    <div class="k-label">Kotva</div>
+    <div class="k-text" id="sb-kotva-text"></div>
+  </div></div>
+  <div class="sb-item active" data-page="home">🏠 Home</div>
+  <div class="sb-item" data-page="today">☀️ Today</div>
+  <div class="sb-item" data-page="board">🖼️ Board</div>
+  <div class="sb-item" data-page="focus">🎯 Focus</div>
+  <div class="sb-item" data-page="finance">💰 Finance</div>
+  <div class="sb-item" data-page="settings">⚙️ Settings</div>
+  <div class="sb-foot">Aurora 3.0 · Personal OS</div>
+</aside>
+
+<main id="main">
+
+  <!-- ================= HOME ================= -->
+  <div class="page active" id="p-home">
+    <div class="h-eyebrow" id="home-date"></div>
+    <div class="h-page" id="home-greet">Ahoj</div>
+    <div class="h-sub" id="home-kotva"></div>
+
+    <div class="sec">Dnes</div>
+    <div class="lg card rv-t">
+      <input type="text" id="q-focus" placeholder="Na co se dnes soustředím...">
+      <div class="pill-row" id="q-energy" style="margin-top:12px">
+        <div class="pill" data-v="Nízká">Nízká energie</div>
+        <div class="pill" data-v="Střední">Střední</div>
+        <div class="pill" data-v="Vysoká">Vysoká</div>
+      </div>
+    </div>
+
+    <div class="sec">Přehled</div>
+    <div class="tiles">
+      <div class="lg tile"><div><div class="t-label">Návyky · týden</div><div class="t-val" id="st-habits">0 %</div><div class="tbar"><i id="st-habits-bar" style="width:0%"></i></div></div></div>
+      <div class="lg tile"><div><div class="t-label">Aktivní cíle</div><div class="t-val" id="st-goals">0</div></div></div>
+      <div class="lg tile"><div><div class="t-label">Nápady v inboxu</div><div class="t-val" id="st-ideas">0</div></div></div>
+      <div class="lg tile"><div><div class="t-label">Cesta ke svobodě</div><div class="t-val" id="st-freedom">0 %</div><div class="tbar"><i id="st-freedom-bar" style="width:0%"></i></div></div></div>
+    </div>
+
+    <div class="sec">Life Wheel</div>
+    <div class="lg card"><div id="lifewheel"></div>
+      <div style="font-size:10.5px;color:var(--tt);margin-top:10px;font-style:italic">Klikni na pruh pro úpravu · aktualizuj max 1× měsíčně</div>
+    </div>
+  </div>
+
+  <!-- ================= TODAY ================= -->
+  <div class="page" id="p-today">
+    <div class="h-eyebrow">Přítomnost</div>
+    <div class="h-page">Today</div>
+    <div class="h-sub">Ranní záměr, večerní reflexe. Den na zotavení je stejně validní jako silný den.</div>
+
+    <div class="lg card">
+      <div class="sec" style="margin-top:0">Ohnisko dne</div>
+      <input type="text" id="t-focus" placeholder="Jedna hlavní věc...">
+      <div class="sec">Energie</div>
+      <div class="pill-row" id="t-energy">
+        <div class="pill" data-v="Nízká">Nízká</div>
+        <div class="pill" data-v="Střední">Střední</div>
+        <div class="pill" data-v="Vysoká">Vysoká</div>
+      </div>
+      <div class="sec">Jak dnešek proběhl</div>
+      <div class="pill-row" id="t-mood">
+        <div class="pill" data-v="Silný den">Silný den</div>
+        <div class="pill" data-v="Ok den">Ok den</div>
+        <div class="pill" data-v="Těžký den">Těžký den</div>
+        <div class="pill" data-v="Den na zotavení">Zotavení</div>
+      </div>
+      <div class="sec">Reflexe</div>
+      <textarea id="t-note" placeholder="Co mě stálo energii, co mě dobilo, co jsem si všiml..."></textarea>
+      <div style="margin-top:14px"><button class="btn btn-full" onclick="saveDay()">Uložit dnešek</button></div>
+    </div>
+
+    <div class="sec">Historie</div>
+    <div id="t-history"></div>
+  </div>
+
+  <!-- ================= BOARD ================= -->
+  <div class="page" id="p-board">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div class="h-eyebrow">Vizuální kotva</div>
+        <div class="h-page">Board</div>
+      </div>
+      <div class="icon-btn" onclick="openModal()" style="margin-top:8px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+    </div>
+    <div class="h-sub">Momenty, myšlenky, obrazy — zeď toho, kdo jsi.</div>
+    <div class="wall" id="wall"></div>
+  </div>
+
+  <!-- ================= FOCUS ================= -->
+  <div class="page" id="p-focus">
+    <div class="h-eyebrow">Směr</div>
+    <div class="h-page">Focus</div>
+    <div class="pill-row" style="margin-bottom:20px">
+      <div class="pill on" data-ftab="goals" onclick="fTab('goals',this)">Goals</div>
+      <div class="pill" data-ftab="habits" onclick="fTab('habits',this)">Habits</div>
+      <div class="pill" data-ftab="ideas" onclick="fTab('ideas',this)">Ideas</div>
+    </div>
+
+    <div id="f-goals">
+      <div class="row" style="margin-bottom:14px">
+        <input type="text" id="g-in" placeholder="Nový cíl..." onkeydown="if(event.key==='Enter')addGoal()">
+        <select id="g-h"><option>Rok</option><option>Kvartál</option><option>Měsíc</option><option selected>Týden</option></select>
+        <div class="icon-btn" onclick="addGoal()">＋</div>
+      </div>
+      <div id="g-list"></div>
+    </div>
+
+    <div id="f-habits" style="display:none">
+      <div class="row" style="margin-bottom:14px">
+        <input type="text" id="h-in" placeholder="Nový návyk..." onkeydown="if(event.key==='Enter')addHabit()">
+        <div class="icon-btn" onclick="addHabit()">＋</div>
+      </div>
+      <div id="h-list"></div>
+      <div style="font-size:10.5px;color:var(--tt);font-style:italic;margin-top:6px">Měří se % týdne, ne streak. Jeden vynechaný den nic neláme.</div>
+    </div>
+
+    <div id="f-ideas" style="display:none">
+      <div class="row" style="margin-bottom:14px">
+        <input type="text" id="i-in" placeholder="Nový nápad..." onkeydown="if(event.key==='Enter')addIdea()">
+        <div class="icon-btn" onclick="addIdea()">＋</div>
+      </div>
+      <div id="i-list"></div>
+    </div>
+  </div>
+
+  <!-- ================= FINANCE ================= -->
+  <div class="page" id="p-finance">
+    <div class="h-eyebrow">Cesta ke svobodě</div>
+    <div class="h-page">Finance</div>
+    <div class="h-sub">Peníze jsou prostředek, ne cíl. Tohle je měřič vzdálenosti ke svobodě.</div>
+
+    <div class="lg card">
+      <div class="sec" style="margin-top:0">Freedom number</div>
+      <div class="row">
+        <input type="text" id="fn-in" placeholder="Cílová částka (rezerva/kapitál)..." inputmode="numeric">
+        <div class="icon-btn" onclick="setFreedom()">✓</div>
+      </div>
+      <div class="freedom"><i id="freedom-bar" style="width:0%"></i></div>
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--ts)">
+        <span id="freedom-cur">0 Kč</span><span id="freedom-pct" style="font-weight:900;font-style:italic">0 %</span><span id="freedom-goal">— Kč</span>
+      </div>
+    </div>
+
+    <div class="sec">Nový měsíc</div>
+    <div class="lg card">
+      <div class="grid2">
+        <input type="text" id="fm-month" placeholder="Měsíc (2026-07)">
+        <input type="text" id="fm-income" placeholder="Příjem celkem" inputmode="numeric">
+        <input type="text" id="fm-exp" placeholder="Výdaje" inputmode="numeric">
+        <button class="btn" onclick="addMonth()">Přidat</button>
+      </div>
+    </div>
+
+    <div class="sec">Historie</div>
+    <div id="fin-list"></div>
+  </div>
+
+  <!-- ================= SETTINGS ================= -->
+  <div class="page" id="p-settings">
+    <div class="h-eyebrow">Customizace</div>
+    <div class="h-page">Settings</div>
+
+    <div class="sec">Profil</div>
+    <div class="lg card">
+      <input type="text" id="set-name" placeholder="Tvoje jméno">
+      <div style="height:10px"></div>
+      <textarea id="set-kotva" placeholder="Tvoje kotva — věta, která tě drží ve směru..."></textarea>
+      <div style="margin-top:12px"><button class="btn btn-ghost btn-full" onclick="saveProfile()">Uložit profil</button></div>
+    </div>
+
+    <div class="sec">Accent barva</div>
+    <div class="lg card"><div class="pill-row" id="set-accent">
+      <div class="swatch on" data-c="#B79CF0" style="background:#B79CF0"></div>
+      <div class="swatch" data-c="#8FCB9B" style="background:#8FCB9B"></div>
+      <div class="swatch" data-c="#E39C7C" style="background:#E39C7C"></div>
+      <div class="swatch" data-c="#F0C775" style="background:#F0C775"></div>
+      <div class="swatch" data-c="#8FB4E3" style="background:#8FB4E3"></div>
+      <input type="color" id="set-accent-custom" value="#B79CF0">
+    </div></div>
+
+    <div class="sec">Pozadí</div>
+    <div class="lg card">
+      <div class="pill-row" id="set-bg" style="margin-bottom:14px">
+        <div class="swatch on" data-p="violet" style="background:linear-gradient(135deg,#7B6EF6,#6EC98A)"></div>
+        <div class="swatch" data-p="sunset" style="background:linear-gradient(135deg,#E39C7C,#F0C775)"></div>
+        <div class="swatch" data-p="ocean" style="background:linear-gradient(135deg,#3E6FA8,#8FB4E3)"></div>
+        <div class="swatch" data-p="forest" style="background:linear-gradient(135deg,#2E6E4E,#8FCB9B)"></div>
+        <div class="swatch" data-p="mono" style="background:linear-gradient(135deg,#3A3A44,#8A8A96)"></div>
+      </div>
+      <button class="btn btn-ghost btn-full" onclick="document.getElementById('bg-file').click()">📷 Vlastní fotka na pozadí</button>
+      <button class="btn btn-ghost btn-full" id="bg-remove" style="display:none;margin-top:8px;color:#f0a0a0" onclick="removeBgPhoto()">Odebrat fotku</button>
+    </div>
+
+    <div class="sec">Text</div>
+    <div class="lg card">
+      <div style="font-size:11px;color:var(--tt);margin-bottom:8px;font-style:italic">Velikost textu · <span id="ts-val">100 %</span></div>
+      <input type="range" min="85" max="130" value="100" id="set-tsize">
+    </div>
+
+    <div class="sec">Sklo & pohyb</div>
+    <div class="lg card">
+      <div style="font-size:11px;color:var(--tt);margin-bottom:8px;font-style:italic">Hustota skla</div>
+      <input type="range" min="4" max="26" value="9" id="set-glass">
+      <div style="height:14px"></div>
+      <div class="pill-row">
+        <div class="pill on" id="mo-on" onclick="motion(true)">Pohyb zapnut</div>
+        <div class="pill" id="mo-off" onclick="motion(false)">Vypnut</div>
+      </div>
+    </div>
+
+    <div class="sec">Data</div>
+    <div class="lg card">
+      <button class="btn btn-ghost btn-full" onclick="exportData()">Export dat (JSON)</button>
+      <button class="btn btn-ghost btn-full" style="margin-top:8px;color:#f0a0a0" onclick="clearData()">Smazat všechna data</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- MOBILE NAV -->
+<nav id="bnav">
+  <div class="bn active" data-page="home"><span>Home</span></div>
+  <div class="bn" data-page="today"><span>Today</span></div>
+  <div class="bn" data-page="board"><span>Board</span></div>
+  <div class="bn" data-page="focus"><span>Focus</span></div>
+  <div class="bn" data-page="finance"><span>Fin</span></div>
+  <div class="bn" data-page="settings"><span>Set</span></div>
+</nav>
+
+<!-- ADD MODAL (Board) -->
+<div id="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div id="modal" class="lg lg-strong"><div>
+    <div class="m-title">Nový moment</div>
+    <div class="pill-row" style="margin-bottom:14px">
+      <div class="pill on" id="mt-note" onclick="modalType('note')">Poznámka</div>
+      <div class="pill" id="mt-photo" onclick="modalType('photo')">Fotka</div>
+    </div>
+    <div id="m-note-area">
+      <textarea id="m-text" placeholder="Co máš na mysli..."></textarea>
+    </div>
+    <div id="m-photo-area" style="display:none">
+      <button class="btn btn-ghost btn-full" onclick="document.getElementById('w-file').click()">Vybrat fotku</button>
+      <div id="m-photo-name" style="font-size:11px;color:var(--tt);margin-top:8px;font-style:italic"></div>
+    </div>
+    <div style="margin-top:16px"><button class="btn btn-full" onclick="saveCard()">Přidat na board</button></div>
+  </div></div>
+</div>
+
+<input type="file" id="bg-file" accept="image/*" style="display:none">
+<input type="file" id="w-file" accept="image/*" style="display:none">
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ STORE ============ */
+const KEY='aurora3';
+let S={
+  profile:{name:'Matěj',kotva:'„Peníze jsou prostředek ke svobodě, ne cíl. Buduju vlastní život."'},
+  theme:{accent:'#B79CF0',bg:'violet',photo:null,glass:9,tsize:100,motion:true},
+  daily:[],
+  quick:{focus:'',energy:''},
+  habits:[{id:1,n:'Pohyb'},{id:2,n:'Čtení 20 min'},{id:3,n:'Bez telefonu ráno'}],
+  hlog:{},
+  goals:[{id:1,n:'Vytvořit stabilní vedlejší příjem',h:'Kvartál'},{id:2,n:'Postavit KEID landing page',h:'Týden'}],
+  ideas:[{id:1,t:'Krátké AI tutoriály na IG',s:'Nezpracováno'}],
+  wall:[{id:1,type:'note',text:'Začátek Aurory 3.0 — méně, ale pořádně.',date:today()}],
+  wheel:[{n:'💪 Zdraví',v:6},{n:'💰 Finance',v:5},{n:'🎨 Tvorba',v:7},{n:'❤️ Vztahy',v:4},{n:'🌱 Rozvoj',v:7},{n:'🚀 Podnikání',v:6}],
+  fin:{goal:0,months:[]}
+};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d)S={...S,...d}}catch(e){}}
+function today(){return new Date().toISOString().slice(0,10)}
+function uid(){return Date.now()+Math.floor(Math.random()*999)}
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
+/* ============ NAV ============ */
+function go(page){
+  document.querySelectorAll('.sb-item,.bn').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const el=document.getElementById('p-'+page);
+  el.classList.add('active');
+  window.scrollTo(0,0);
+  renderAll();
+  stagger(el);
+}
+document.querySelectorAll('.sb-item,.bn').forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));
+
+function stagger(pageEl){
+  const items=pageEl.querySelectorAll('.lg, .list-item, .wcard, .habit');
+  items.forEach((el,i)=>{
+    el.classList.remove('in');el.classList.add('rv');
+    void el.offsetWidth;
+    setTimeout(()=>el.classList.add('in'), 40+i*45);
+  });
+  pageEl.querySelectorAll('.t-val').forEach(countUp);
+}
+function countUp(el){
+  const raw=el.textContent.trim();
+  const m=raw.match(/^(-?\d[\d\s]*[.,]?\d*)/);
+  if(!m)return;
+  const target=parseFloat(m[1].replace(/\s/g,'').replace(',','.'));
+  if(isNaN(target))return;
+  const suffix=raw.slice(m[1].length);
+  const t0=performance.now(),dur=850;
+  function tick(now){
+    const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,3);
+    const v=target*e;
+    el.textContent=(Number.isInteger(target)?Math.round(v):v.toFixed(1)).toLocaleString('cs-CZ')+suffix;
+    if(p<1)requestAnimationFrame(tick);else el.textContent=raw;
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ============ HOME ============ */
+function renderHome(){
+  const d=new Date();
+  const days=['Neděle','Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota'];
+  const months=['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'];
+  document.getElementById('home-date').textContent=`${days[d.getDay()]} · ${d.getDate()}. ${months[d.getMonth()]}`;
+  const h=d.getHours();
+  const greet=h<10?'Dobré ráno':h<18?'Ahoj':'Dobrý večer';
+  document.getElementById('home-greet').textContent=`${greet}, ${S.profile.name}`;
+  document.getElementById('home-kotva').textContent=S.profile.kotva;
+  document.getElementById('sb-kotva-text').textContent=S.profile.kotva;
+  document.getElementById('q-focus').value=S.quick.focus||'';
+  document.querySelectorAll('#q-energy .pill').forEach(p=>p.classList.toggle('on',p.dataset.v===S.quick.energy));
+  // stats
+  document.getElementById('st-habits').textContent=habitPct()+' %';
+  document.getElementById('st-habits-bar').style.width=habitPct()+'%';
+  document.getElementById('st-goals').textContent=S.goals.length;
+  document.getElementById('st-ideas').textContent=S.ideas.filter(i=>i.s==='Nezpracováno').length;
+  const fp=freedomPct();
+  document.getElementById('st-freedom').textContent=fp+' %';
+  document.getElementById('st-freedom-bar').style.width=fp+'%';
+  // wheel
+  document.getElementById('lifewheel').innerHTML=S.wheel.map((w,i)=>`
+    <div class="lw-row">
+      <div class="lw-name">${w.n}</div>
+      <div class="lw-bar" onclick="wheelEdit(${i},event)"><i style="width:${w.v*10}%"></i></div>
+      <div class="lw-val">${w.v}/10</div>
+    </div>`).join('');
+}
+function wheelEdit(i,ev){
+  const bar=ev.currentTarget.getBoundingClientRect();
+  const ratio=(ev.clientX-bar.left)/bar.width;
+  S.wheel[i].v=Math.max(1,Math.min(10,Math.round(ratio*10)));
+  save();renderHome();
+}
+document.getElementById('q-focus').addEventListener('change',e=>{S.quick.focus=e.target.value;save()});
+document.querySelectorAll('#q-energy .pill').forEach(p=>p.addEventListener('click',()=>{
+  S.quick.energy=p.dataset.v;save();renderHome();
+}));
+
+/* ============ TODAY ============ */
+let tEnergy='',tMood='';
+document.querySelectorAll('#t-energy .pill').forEach(p=>p.addEventListener('click',()=>{
+  document.querySelectorAll('#t-energy .pill').forEach(x=>x.classList.remove('on'));p.classList.add('on');tEnergy=p.dataset.v;
+}));
+document.querySelectorAll('#t-mood .pill').forEach(p=>p.addEventListener('click',()=>{
+  document.querySelectorAll('#t-mood .pill').forEach(x=>x.classList.remove('on'));p.classList.add('on');tMood=p.dataset.v;
+}));
+function saveDay(){
+  const e={date:today(),focus:document.getElementById('t-focus').value.trim(),energy:tEnergy,mood:tMood,note:document.getElementById('t-note').value.trim()};
+  S.daily=S.daily.filter(x=>x.date!==e.date);
+  S.daily.unshift(e);save();renderToday();toast('Dnešek uložen ✦');
+}
+function renderToday(){
+  const el=document.getElementById('t-history');
+  el.innerHTML=S.daily.length?S.daily.slice(0,21).map(e=>`
+    <div class="lg list-item" style="flex-direction:column;align-items:flex-start;gap:5px">
+      <div style="display:flex;justify-content:space-between;width:100%">
+        <strong style="font-size:12.5px;font-style:italic">${e.date}</strong>
+        ${e.mood?`<span class="mini-tag">${e.mood}</span>`:''}
+      </div>
+      ${e.focus?`<div style="font-size:13px;color:var(--ts)">${esc(e.focus)}${e.energy?' · '+e.energy.toLowerCase()+' energie':''}</div>`:''}
+      ${e.note?`<div style="font-size:13px;line-height:1.5">${esc(e.note)}</div>`:''}
+    </div>`).join(''):'<div class="empty">Zatím žádné záznamy — dnešek může být první.</div>';
+}
+
+/* ============ BOARD ============ */
+let mType='note',mPhotoData=null;
+function openModal(){document.getElementById('modal-bg').classList.add('open')}
+function closeModal(){document.getElementById('modal-bg').classList.remove('open');mPhotoData=null;document.getElementById('m-text').value='';document.getElementById('m-photo-name').textContent=''}
+function modalType(t){
+  mType=t;
+  document.getElementById('mt-note').classList.toggle('on',t==='note');
+  document.getElementById('mt-photo').classList.toggle('on',t==='photo');
+  document.getElementById('m-note-area').style.display=t==='note'?'block':'none';
+  document.getElementById('m-photo-area').style.display=t==='photo'?'block':'none';
+}
+document.getElementById('w-file').addEventListener('change',function(){
+  const f=this.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{mPhotoData=e.target.result;document.getElementById('m-photo-name').textContent=f.name};
+  r.readAsDataURL(f);
+});
+function saveCard(){
+  if(mType==='note'){
+    const t=document.getElementById('m-text').value.trim();if(!t)return;
+    S.wall.unshift({id:uid(),type:'note',text:t,date:today()});
+  }else{
+    if(!mPhotoData)return;
+    S.wall.unshift({id:uid(),type:'photo',img:mPhotoData,date:today()});
+  }
+  save();closeModal();renderBoard();toast('Přidáno na board ✦');
+}
+function delCard(id){S.wall=S.wall.filter(c=>c.id!==id);save();renderBoard()}
+function renderBoard(){
+  const el=document.getElementById('wall');
+  el.innerHTML=S.wall.length?S.wall.map(c=>`
+    <div class="lg wcard" ondblclick="delCard(${c.id})">
+      ${c.type==='photo'?`<img src="${c.img}" alt="">`:`<div class="w-note">${esc(c.text)}</div>`}
+      <div class="w-date">${c.date}${c.type==='note'?' · 2× klik smaže':''}</div>
+    </div>`).join(''):'<div class="empty">Zeď je prázdná. Tap na + a přidej první moment ✦</div>';
+}
+
+/* ============ FOCUS ============ */
+function fTab(t,el){
+  document.querySelectorAll('[data-ftab]').forEach(p=>p.classList.remove('on'));el.classList.add('on');
+  ['goals','habits','ideas'].forEach(x=>document.getElementById('f-'+x).style.display=x===t?'block':'none');
+}
+function addGoal(){
+  const v=document.getElementById('g-in').value.trim();if(!v)return;
+  S.goals.unshift({id:uid(),n:v,h:document.getElementById('g-h').value});
+  document.getElementById('g-in').value='';save();renderFocus();
+}
+function delGoal(id){S.goals=S.goals.filter(g=>g.id!==id);save();renderFocus()}
+function addHabit(){
+  const v=document.getElementById('h-in').value.trim();if(!v)return;
+  S.habits.push({id:uid(),n:v});document.getElementById('h-in').value='';save();renderFocus();
+}
+function delHabit(id){S.habits=S.habits.filter(h=>h.id!==id);delete S.hlog[id];save();renderFocus()}
+function weekDays(){
+  const now=new Date(),mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7));
+  return Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d.toISOString().slice(0,10)});
+}
+function togHabit(id,day){
+  if(!S.hlog[id])S.hlog[id]={};
+  S.hlog[id][day]=!S.hlog[id][day];save();renderFocus();renderHome();
+}
+function habitPct(){
+  if(!S.habits.length)return 0;
+  const wd=weekDays();
+  let t=0;S.habits.forEach(h=>{const l=S.hlog[h.id]||{};t+=wd.filter(d=>l[d]).length/7});
+  return Math.round(t/S.habits.length*100);
+}
+function addIdea(){
+  const v=document.getElementById('i-in').value.trim();if(!v)return;
+  S.ideas.unshift({id:uid(),t:v,s:'Nezpracováno'});document.getElementById('i-in').value='';save();renderFocus();renderHome();
+}
+function cycIdea(id){
+  const o=['Nezpracováno','Zvažuju','Zpracováno'];const i=S.ideas.find(x=>x.id===id);
+  i.s=o[(o.indexOf(i.s)+1)%o.length];save();renderFocus();renderHome();
+}
+function delIdea(id){S.ideas=S.ideas.filter(i=>i.id!==id);save();renderFocus();renderHome()}
+function renderFocus(){
+  const lbl=['Po','Út','St','Čt','Pá','So','Ne'],wd=weekDays();
+  document.getElementById('g-list').innerHTML=S.goals.length?S.goals.map(g=>`
+    <div class="lg list-item"><span class="mini-tag">${g.h}</span><span class="li-txt">${esc(g.n)}</span><span class="del" onclick="delGoal(${g.id})">✕</span></div>`).join('')
+    :'<div class="empty">Žádné cíle — přidej první ✦</div>';
+  document.getElementById('h-list').innerHTML=S.habits.length?S.habits.map(h=>{
+    const l=S.hlog[h.id]||{};const done=wd.filter(d=>l[d]).length;const pct=Math.round(done/7*100);
+    return `<div class="lg habit"><div>
+      <div class="habit-top"><span class="habit-name">${esc(h.n)}</span>
+        <span class="habit-pct">${pct} % <span class="del" onclick="delHabit(${h.id})">✕</span></span></div>
+      <div class="hdays">${wd.map((d,i)=>`<div class="hday ${l[d]?'on':''}" onclick="togHabit(${h.id},'${d}')">${lbl[i]}</div>`).join('')}</div>
+    </div></div>`;
+  }).join(''):'<div class="empty">Žádné návyky. Max 5–7 dává smysl ✦</div>';
+  document.getElementById('i-list').innerHTML=S.ideas.length?S.ideas.map(i=>`
+    <div class="lg list-item"><span class="li-txt">${esc(i.t)}</span>
+      <span class="status-tag" onclick="cycIdea(${i.id})">${i.s}</span>
+      <span class="del" onclick="delIdea(${i.id})">✕</span></div>`).join('')
+    :'<div class="empty">Inbox je prázdný ✦</div>';
+}
+
+/* ============ FINANCE ============ */
+function setFreedom(){
+  const v=parseFloat(document.getElementById('fn-in').value.replace(/\s/g,''));
+  if(isNaN(v)||v<=0)return;
+  S.fin.goal=v;save();renderFin();renderHome();toast('Freedom number nastaveno ✦');
+}
+function addMonth(){
+  const m=document.getElementById('fm-month').value.trim();
+  const inc=parseFloat(document.getElementById('fm-income').value.replace(/\s/g,''))||0;
+  const ex=parseFloat(document.getElementById('fm-exp').value.replace(/\s/g,''))||0;
+  if(!m)return;
+  S.fin.months=S.fin.months.filter(x=>x.m!==m);
+  S.fin.months.push({m,inc,ex});
+  S.fin.months.sort((a,b)=>a.m.localeCompare(b.m));
+  ['fm-month','fm-income','fm-exp'].forEach(id=>document.getElementById(id).value='');
+  save();renderFin();renderHome();
+}
+function delMonth(m){S.fin.months=S.fin.months.filter(x=>x.m!==m);save();renderFin();renderHome()}
+function savedTotal(){return S.fin.months.reduce((a,x)=>a+(x.inc-x.ex),0)}
+function freedomPct(){return S.fin.goal>0?Math.max(0,Math.min(100,Math.round(savedTotal()/S.fin.goal*100))):0}
+function renderFin(){
+  const fp=freedomPct();
+  document.getElementById('freedom-bar').style.width=fp+'%';
+  document.getElementById('freedom-pct').textContent=fp+' %';
+  document.getElementById('freedom-cur').textContent=savedTotal().toLocaleString('cs-CZ')+' Kč';
+  document.getElementById('freedom-goal').textContent=S.fin.goal?S.fin.goal.toLocaleString('cs-CZ')+' Kč':'— Kč';
+  if(S.fin.goal)document.getElementById('fn-in').placeholder=S.fin.goal.toLocaleString('cs-CZ')+' Kč';
+  document.getElementById('fin-list').innerHTML=S.fin.months.length?S.fin.months.slice().reverse().map(x=>{
+    const s=x.inc-x.ex;
+    return `<div class="lg list-item">
+      <strong style="font-style:italic;font-size:13px">${x.m}</strong>
+      <span class="li-txt" style="color:var(--ts);font-size:12.5px">+${x.inc.toLocaleString('cs-CZ')} / −${x.ex.toLocaleString('cs-CZ')}</span>
+      <span class="mini-tag">${s>=0?'+':''}${s.toLocaleString('cs-CZ')} Kč</span>
+      <span class="del" onclick="delMonth('${x.m}')">✕</span></div>`;
+  }).join(''):'<div class="empty">Zatím žádné měsíce ✦</div>';
+}
+
+/* ============ SETTINGS ============ */
+const BGP={
+  violet:{c1:'rgba(123,110,246,0.45)',c2:'rgba(110,201,138,0.22)',c3:'rgba(227,156,124,0.20)',b1:'#0B0A12',b2:'#12101E',bl:['#7B6EF6','#6EC98A','#E39C7C']},
+  sunset:{c1:'rgba(227,156,124,0.45)',c2:'rgba(240,199,117,0.28)',c3:'rgba(200,90,90,0.22)',b1:'#150E0B',b2:'#20130D',bl:['#E39C7C','#F0C775','#C96A6A']},
+  ocean:{c1:'rgba(62,111,168,0.48)',c2:'rgba(143,180,227,0.25)',c3:'rgba(90,180,190,0.2)',b1:'#070B12',b2:'#0B1622',bl:['#3E6FA8','#8FB4E3','#5AB4BE']},
+  forest:{c1:'rgba(46,110,78,0.48)',c2:'rgba(143,203,155,0.25)',c3:'rgba(120,150,90,0.2)',b1:'#0A120C',b2:'#0F1D12',bl:['#2E6E4E','#8FCB9B','#789660']},
+  mono:{c1:'rgba(120,120,132,0.35)',c2:'rgba(160,160,170,0.18)',c3:'rgba(90,90,100,0.18)',b1:'#0C0C0E',b2:'#141418',bl:['#5A5A66','#8A8A96','#3A3A44']}
+};
+function applyTheme(){
+  const t=S.theme,r=document.documentElement.style;
+  r.setProperty('--accent',t.accent);
+  r.setProperty('--text-scale',t.tsize/100);
+  r.setProperty('--glass',`rgba(255,255,255,${t.glass/100})`);
+  r.setProperty('--glass-strong',`rgba(255,255,255,${t.glass/100*1.7})`);
+  const p=BGP[t.bg]||BGP.violet;
+  r.setProperty('--bgc1',p.c1);r.setProperty('--bgc2',p.c2);r.setProperty('--bgc3',p.c3);
+  r.setProperty('--bgbase1',p.b1);r.setProperty('--bgbase2',p.b2);
+  document.querySelectorAll('.blob').forEach((b,i)=>b.style.background=p.bl[i]);
+  const ph=document.getElementById('bg-photo');
+  if(t.photo){ph.style.backgroundImage=`url(${t.photo})`;ph.classList.add('on');document.getElementById('bg-remove').style.display='block'}
+  else{ph.classList.remove('on');document.getElementById('bg-remove').style.display='none'}
+  document.querySelectorAll('.blob').forEach(b=>b.style.animationPlayState=t.motion?'running':'paused');
+  document.getElementById('mo-on').classList.toggle('on',t.motion);
+  document.getElementById('mo-off').classList.toggle('on',!t.motion);
+  document.querySelectorAll('#set-accent .swatch').forEach(s=>s.classList.toggle('on',s.dataset.c===t.accent));
+  document.querySelectorAll('#set-bg .swatch').forEach(s=>s.classList.toggle('on',s.dataset.p===t.bg));
+  document.getElementById('set-tsize').value=t.tsize;
+  document.getElementById('ts-val').textContent=t.tsize+' %';
+  document.getElementById('set-glass').value=t.glass;
+}
+document.querySelectorAll('#set-accent .swatch').forEach(s=>s.addEventListener('click',()=>{S.theme.accent=s.dataset.c;save();applyTheme()}));
+document.getElementById('set-accent-custom').addEventListener('input',e=>{S.theme.accent=e.target.value;save();applyTheme()});
+document.querySelectorAll('#set-bg .swatch').forEach(s=>s.addEventListener('click',()=>{S.theme.bg=s.dataset.p;S.theme.photo=null;save();applyTheme()}));
+document.getElementById('bg-file').addEventListener('change',function(){
+  const f=this.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{S.theme.photo=e.target.result;save();applyTheme();toast('Pozadí nastaveno ✦')};
+  r.readAsDataURL(f);
+});
+function removeBgPhoto(){S.theme.photo=null;save();applyTheme()}
+document.getElementById('set-tsize').addEventListener('input',e=>{S.theme.tsize=+e.target.value;save();applyTheme()});
+document.getElementById('set-glass').addEventListener('input',e=>{S.theme.glass=+e.target.value;save();applyTheme()});
+function motion(on){S.theme.motion=on;save();applyTheme()}
+function saveProfile(){
+  S.profile.name=document.getElementById('set-name').value.trim()||S.profile.name;
+  S.profile.kotva=document.getElementById('set-kotva').value.trim()||S.profile.kotva;
+  save();renderHome();toast('Profil uložen ✦');
+}
+function exportData(){
+  const a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(S,null,2));
+  a.download='aurora3-data.json';a.click();
+}
+function clearData(){
+  if(confirm('Fakt smazat všechna data? Tohle nejde vrátit.')){localStorage.removeItem(KEY);location.reload()}
+}
+
+/* ============ INIT ============ */
+function renderAll(){renderHome();renderToday();renderBoard();renderFocus();renderFin()}
+load();
+applyTheme();
+document.getElementById('set-name').value=S.profile.name;
+document.getElementById('set-kotva').value=S.profile.kotva;
+renderAll();
+setTimeout(()=>stagger(document.querySelector('.page.active')),120);
+</script>
+</body>
+</html>
