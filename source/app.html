@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#140f0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aurora">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<title>Aurora</title>
+<script src="host.js"></script>
+<link rel="stylesheet" href="v2.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="sym" viewBox="-95 -95 190 190"><circle r="86" fill="none" stroke="currentColor" stroke-width="12"/><path transform="translate(-120.895 122.502) scale(0.01397 -0.01397)" d="M5462 12390 c-316 -13 -542 -30 -622 -46 -332 -67 -601 -327 -679 -654 -121 -506 167 -976 678 -1106 145 -37 368 -45 1301 -43 892 1 847 4 1005 -56 232 -89 421 -251 514 -440 147 -302 84 -740 -140 -980 -151 -160 -279 -218 -614 -274 -478 -80 -735 -224 -858 -481 -51 -107 -61 -145 -82 -313 -85 -661 -388 -964 -1067 -1068 -177 -27 -238 -43 -333 -89 -197 -95 -334 -268 -397 -500 -35 -130 -33 -413 5 -552 89 -333 337 -554 696 -622 424 -80 752 65 941 416 56 104 92 214 130 396 134 648 415 916 1035 988 219 25 335 67 457 165 179 143 283 353 358 728 101 505 267 743 575 827 82 22 303 30 418 14 451 -61 684 -330 752 -870 40 -315 130 -522 290 -668 122 -111 250 -162 488 -192 658 -83 939 -366 1062 -1069 69 -393 284 -645 630 -737 112 -30 349 -26 478 9 347 92 574 304 659 612 32 117 32 381 0 509 -66 262 -206 446 -424 555 -124 62 -207 84 -404 106 -342 39 -564 131 -726 303 -118 126 -170 263 -202 532 -71 619 -365 899 -1061 1014 -419 69 -595 246 -736 739 -56 194 -124 364 -289 712 -77 163 -142 306 -145 318 -5 20 116 162 319 375 11 11 78 -13 372 -131 493 -198 595 -230 839 -262 165 -21 528 -37 715 -30 85 3 310 10 500 16 471 14 592 32 775 118 336 157 502 423 499 801 -3 461 -297 795 -794 901 -104 22 -110 23 -1010 23 -979 0 -963 0 -1155 -56 -231 -67 -465 -241 -594 -440 -24 -38 -45 -68 -48 -68 -2 0 -32 31 -67 68 -201 212 -448 385 -646 452 -93 31 -270 39 -374 15 -168 -37 -358 -157 -558 -353 -140 -137 -94 -143 -378 47 -431 289 -447 295 -965 331 -202 14 -884 20 -1123 10z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-spaces" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-board" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></symbol>
+  <symbol id="i-todo" viewBox="0 0 24 24"><path d="M4 7l2 2 3-3M12 8h8M4 16l2 2 3-3M12 17h8"/></symbol>
+  <symbol id="i-set" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3H7l3-3zM12 13v7"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></symbol>
+  <symbol id="i-lines" viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h6"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></symbol>
+  <symbol id="i-photo" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4zM15 9q3 3 0 6M18 7q5 5 0 10"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4zM16 9l5 6M21 9l-5 6"/></symbol>
+</svg>
+
+<div id="bg" aria-hidden="true"></div>
+
+<div id="app">
+  <main id="view">
+
+    <section class="tab" id="home" aria-label="Home">
+      <header class="head">
+        <div class="bar">
+          <div><span class="wordmark" aria-label="Aurora">AUR<svg aria-hidden="true"><use href="#sym"/></svg>RA</span><div class="date" id="homeDate"></div></div>
+          <div class="bar-r"><button class="icon-btn primary add-pill" data-add aria-label="Throw it in"><svg class="ico"><use href="#i-plus"/></svg><span>Throw it in</span></button></div>
+        </div>
+      </header>
+      <div class="hero">
+        <div><div class="eyebrow" id="homeEyebrow">Your day</div><h1 id="homeLine">In your own <br>rhythm.</h1></div>
+        <div class="score" id="homeScore"></div>
+      </div>
+      <div class="tray" id="tray" aria-label="Hidden widgets"></div>
+      <div class="widgets" id="widgets" aria-label="Widgets"></div>
+    </section>
+
+    <section class="tab" id="spaces" aria-label="Spaces" hidden>
+      <header class="head" id="spacesHead"></header>
+      <div id="spacesBody" style="flex:1;min-height:0;display:flex;flex-direction:column"></div>
+    </section>
+
+    <section class="tab" id="board" aria-label="Board" hidden>
+      <header class="head">
+        <div class="bar"><span class="wordmark" aria-label="Aurora">AUR<svg aria-hidden="true"><use href="#sym"/></svg>RA</span><button class="icon-btn primary" data-add aria-label="Throw it in"><svg class="ico"><use href="#i-plus"/></svg></button></div>
+        <div class="titlerow"><h1 class="title">Board</h1><div class="count" id="boardCount"></div></div>
+        <div class="filters" id="boardFilters" role="group" aria-label="Filter the board"></div>
+      </header>
+      <div class="gallery" id="gallery"></div>
+    </section>
+
+    <section class="tab" id="todo" aria-label="To do" hidden>
+      <header class="head">
+        <div class="bar"><span class="wordmark" aria-label="Aurora">AUR<svg aria-hidden="true"><use href="#sym"/></svg>RA</span></div>
+        <div class="titlerow"><h1 class="title">To do</h1><div class="count" id="todoCount"></div></div>
+        <form class="addbar glass" id="todoForm" autocomplete="off"><label for="todoInput" class="sr">New task</label><input id="todoInput" placeholder="New task" maxlength="200"><button class="icon-btn primary" aria-label="Add task"><svg class="ico"><use href="#i-plus"/></svg></button></form>
+      </header>
+      <div class="listwrap glass"><div class="scroller" id="todoList"></div></div>
+    </section>
+
+    <section class="tab" id="settings" aria-label="Settings" hidden>
+      <header class="head">
+        <div class="bar"><span class="wordmark" aria-label="Aurora">AUR<svg aria-hidden="true"><use href="#sym"/></svg>RA</span></div>
+        <div class="titlerow"><h1 class="title">Settings</h1></div>
+      </header>
+      <div class="scroller set-scroll"><div class="inner">
+        <div class="eyebrow" style="padding:4px 4px 0">Appearance</div>
+        <div class="group glass pad"><div class="modes" id="modes" role="group" aria-label="Appearance">
+          <button data-mode="dark"><span style="background-image:url(assets/ember-4k.jpg)"></span><b>Dark</b></button>
+          <button data-mode="light"><span style="background-image:url(assets/daybreak-4k.jpg)"></span><b>Light</b></button>
+          <button data-mode="system"><span style="background:linear-gradient(90deg,#241a16 50%,#efe4d4 50%)"></span><b>Auto</b></button>
+        </div></div>
+        <div class="group glass">
+          <div class="srow"><span class="t"><b>Your own background</b><small>Any photo or graphic, full screen</small></span><button class="chip glass" id="bgReset" hidden>Reset</button><label class="chip glass" style="cursor:pointer">Choose<input type="file" id="bgFile" accept="image/*" class="sr"></label></div>
+          <div class="srow"><label class="t" for="setDim"><b>Dim the background</b><small>So every card and word stays easy to read</small></label><input type="range" id="setDim" min="0" max="80" step="1"><button class="chip glass" id="dimReset" aria-label="Reset dimming">Auto</button></div>
+        </div>
+        <div class="eyebrow" style="padding:8px 4px 0">You</div>
+        <div class="group glass">
+          <label class="srow"><span class="t"><b>Your name</b><small>Used in the morning greeting</small></span><input type="text" id="setName" placeholder="Name" maxlength="40" autocomplete="given-name"></label>
+          <div class="srow"><span class="t"><b>Morning open</b><small>Pick three things when you open Aurora in the morning</small></span><button class="switch" role="switch" id="setMorning" aria-label="Morning open"></button></div>
+          <div class="srow"><span class="t"><b>Intro</b><small>Play the logo animation on launch</small></span><button class="switch" role="switch" id="setIntro" aria-label="Intro on launch"></button></div>
+        </div>
+        <div class="eyebrow" style="padding:8px 4px 0">Connections</div>
+        <div class="group glass">
+          <div class="srow"><span class="t"><b>Invoicing</b><small>Fakturoid · money on client and project cards</small></span><button class="chip glass" data-connect>Connect</button></div>
+        </div>
+        <div class="eyebrow" style="padding:8px 4px 0">Account &amp; data</div>
+        <div class="group glass" data-acc="data" id="dataGroup">
+          <button class="srow" id="exportBtn" style="width:100%;text-align:left"><span class="t"><b>Download a backup</b><small>Everything as one JSON file</small></span><svg class="ico"><use href="#i-next"/></svg></button>
+          <label class="srow" style="cursor:pointer"><span class="t"><b>Restore from backup</b><small>Replaces what is on this device</small></span><svg class="ico"><use href="#i-next"/></svg><input type="file" id="importFile" accept="application/json,.json" class="sr"></label>
+          <button class="srow" id="wipeBtn" style="width:100%;text-align:left;color:var(--bad)"><span class="t"><b>Erase this device</b><small style="color:inherit;opacity:.8">Removes the local copy of your data</small></span></button>
+        </div>
+        <div class="ver" id="ver"></div>
+      </div></div>
+    </section>
+
+  </main>
+</div>
+
+<nav id="nav" class="glass" aria-label="Main">
+  <button data-tab="home" aria-current="page"><svg class="ico"><use href="#i-home"/></svg><span>Home</span></button>
+  <button data-tab="spaces"><svg class="ico"><use href="#i-spaces"/></svg><span>Spaces</span></button>
+  <button data-tab="board"><svg class="ico"><use href="#i-board"/></svg><span>Board</span></button>
+  <button data-tab="todo"><svg class="ico"><use href="#i-todo"/></svg><span>To do</span></button>
+  <button data-tab="settings"><svg class="ico"><use href="#i-set"/></svg><span>Settings</span></button>
+</nav>
+<button class="btn" id="done" hidden>Done</button>
+
+<div id="viewer" hidden role="dialog" aria-modal="true" aria-label="Viewer" tabindex="-1">
+  <div class="track" id="vTrack"></div>
+  <div class="vtop">
+    <button class="icon-btn glass" id="vDel" aria-label="Delete"><svg class="ico"><use href="#i-trash"/></svg></button>
+    <div class="seg glass" id="vFit" role="group" aria-label="Display"><button data-fit="original" aria-pressed="false">Original</button><button data-fit="fill" aria-pressed="true">Fill</button></div>
+    <div class="r">
+      <button class="icon-btn glass" id="vPin" aria-label="Pin" aria-pressed="false"><svg class="ico"><use href="#i-pin"/></svg></button>
+      <button class="icon-btn glass" id="vClose" aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+  </div>
+  <div class="vdots" id="vDots"></div>
+</div>
+
+<div id="morning" hidden><div class="m-bg"></div><div class="m-inner" id="morningInner"></div></div>
+
+<dialog class="sheet" id="sheet" aria-labelledby="sheetTitle"></dialog>
+<dialog class="confirm" id="confirmSheet"><p id="confirmText"></p><div class="sh-actions"><button class="btn ghost" id="confirmNo">Cancel</button><button class="btn" id="confirmYes">OK</button></div></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="model.js"></script>
+<script src="store.js"></script>
+<script src="supabase.js"></script>
+<script src="cloud-config.js"></script>
+<script src="cloud-merge.js"></script>
+<script src="cloud-sync.js"></script>
+<script src="intro.js"></script>
+<script src="v2.js"></script>
+</body>
+</html>
