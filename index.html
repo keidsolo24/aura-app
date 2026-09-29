@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-release="aurora-release-20260929-11" lang="en" class="booting preapp">
+<html data-release="aurora-release-20260929-12" lang="en" class="booting preapp">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
@@ -18,7 +18,7 @@ window.AURORA_ATOMIC=true;window.AURORA_RELEASE_APP=true;window.AURORA_FORCE_PRE
 window.AURORA_AUTH_RETURN=null;
 const authHash=new URLSearchParams(location.hash.slice(1));
 if(authHash.has('access_token')||authHash.has('error_description')){
- window.AURORA_AUTH_RETURN={access_token:authHash.get('access_token'),refresh_token:authHash.get('refresh_token'),error:authHash.get('error_description')};
+ window.AURORA_AUTH_RETURN={access_token:authHash.get('access_token'),refresh_token:authHash.get('refresh_token'),error:authHash.get('error_description'),type:authHash.get('type')};
  history.replaceState(null,'',location.pathname+location.search);
 }
 </script>
@@ -2493,6 +2493,9 @@ html[data-spatial=true][data-glass-tint=off] .prism-card{background:radial-gradi
 </style>
 <style data-source="cloud.css">
 .cloud-panel{padding:22px;margin-bottom:16px;border-radius:24px}.cloud-panel h3{font-size:20px;letter-spacing:-.5px;margin:0 0 8px}.cloud-panel p{font-size:13px;line-height:1.6;opacity:.8;overflow-wrap:anywhere}.cloud-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.cloud-status{display:flex;gap:8px;align-items:center}.cloud-status:before{content:'';width:6px;height:6px;flex:none;border-radius:100%;background:currentColor}.cloud-dialog{width:min(420px,calc(100% - 32px));max-height:85dvh;overflow:auto;border:1px solid #8885;border-radius:26px;padding:26px;background:#f4f3ef;color:#171816;box-shadow:0 24px 90px #0003}.cloud-dialog::backdrop{background:#1118;backdrop-filter:blur(8px)}.cloud-dialog h2{font-size:26px;letter-spacing:-1px;margin:0 0 12px}.cloud-dialog p{font-size:14px;line-height:1.6}.cloud-dialog label{display:block;font-size:13px;margin:18px 0 7px}.cloud-dialog input{display:block;width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:1px solid #8887;background:transparent;color:inherit;font:inherit}.cloud-dialog button{border:1px solid #8885;border-radius:99px;background:transparent;color:inherit;padding:11px 16px;cursor:pointer;font:inherit;font-size:13px}.cloud-dialog button.primary{background:#1b211d;color:#fff}.cloud-dialog button:disabled{opacity:.4;cursor:wait}.cloud-dialog [hidden]{display:none!important}.cloud-message{min-height:24px}.cloud-conflicts{max-height:210px;overflow:auto;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border:1px solid #8884;border-radius:12px}.cloud-dialog:focus-visible,.cloud-dialog button:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+
+.cloud-auth-options{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid #8883}.cloud-auth-options button{border:0;padding:6px 2px;text-decoration:underline;text-underline-offset:3px}.cloud-auth-options button+button{margin-left:10px}.cloud-dialog input{font-size:16px}.cloud-dialog::backdrop{backdrop-filter:blur(3px)}
+.cloud-dialog{margin:auto;box-sizing:border-box}
 
 </style><style data-source="mobile-polish.css">
 /* Release 02 — a single document owns viewport, safe areas and scroll. */
@@ -7709,11 +7712,11 @@ globalThis.AuroraMerge=(()=>{
 /* Account-scoped, local-first sync. No administrative key belongs in this file. */
 window.AuroraCloud=(()=>{
  const cfg=window.AURORA_CLOUD_CONFIG, merge=window.AuroraMerge;
- let client,user=null,base=null,busy=false,timer,channel,blocked=false,last='Saved on this device',started=false;
+ let client,user=null,base=null,busy=false,timer,channel,blocked=false,last='Saved on this device',started=false,recoveryPending=false,openAuth=null;
  const copy=x=>structuredClone(x), $c=s=>document.querySelector(s);
  const content=st=>['spaces','tasks','entries','habits','goals'].some(k=>st[k]?.length);
  const editing=()=>!!document.querySelector('dialog[open],#cardView.in,#gridOverlay.on')||/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)||document.activeElement?.isContentEditable||typeof homeEdit!=='undefined'&&homeEdit;
- function status(message){last=message;const el=$c('#cloudStatus');if(el)el.textContent=message;const who=$c('#cloudAccount');if(who)who.textContent=user?user.email:'Sign in on your phone and desktop to share your Spaces, notes and photos.';if($c('#cloudLogin'))$c('#cloudLogin').hidden=!!user;if($c('#cloudSync'))$c('#cloudSync').hidden=!user;if($c('#cloudLogout'))$c('#cloudLogout').hidden=!user;}
+ function status(message){last=message;const el=$c('#cloudStatus');if(el)el.textContent=message;const who=$c('#cloudAccount');if(who)who.textContent=user?user.email:'Sign in on your phone and desktop to share your Spaces, notes and photos.';if($c('#cloudLogin'))$c('#cloudLogin').hidden=!!user;if($c('#cloudSync'))$c('#cloudSync').hidden=!user;if($c('#cloudLogout'))$c('#cloudLogout').hidden=!user;if($c('#cloudPassword'))$c('#cloudPassword').hidden=!user;}
  function failure(e){const msg=e?.message||String(e);if(/aurora_state|aurora_commit|schema cache|bucket not found/i.test(msg))return 'Cloud setup is incomplete. Run supabase-setup.sql, then retry.';if(!navigator.onLine||/fetch|network/i.test(msg))return 'Offline — changes remain on this device. Will retry.';return 'Sync paused: '+msg;}
  function queue(delay=900){clearTimeout(timer);if(user&&!blocked){status('Saved on this device · waiting to sync');timer=setTimeout(()=>sync(),delay)}}
  const localSave=Store.save;
@@ -7726,7 +7729,7 @@ window.AuroraCloud=(()=>{
  function valid(st){return st&&typeof st==='object'&&st.v===SCHEMA&&st.settings&&['spaces','tasks','entries','habits','goals'].every(k=>Array.isArray(st[k]))}
  function choose(conflicts){return new Promise(resolve=>{const d=$c('#cloudConflict');$c('#cloudConflictDetails').textContent=conflicts.slice(0,12).map(x=>x.path+'\nThis device: '+JSON.stringify(x.local)+'\nCloud: '+JSON.stringify(x.cloud)).join('\n\n');let done=false;const finish=v=>{if(done)return;done=true;d.close();d.oncancel=null;resolve(v)};d.querySelectorAll('[data-choice]').forEach(b=>b.onclick=()=>finish(b.dataset.choice));d.oncancel=e=>{e.preventDefault();finish(null)};d.showModal()})}
  async function sync(force=false){
-  if(!user||blocked||busy)return;if(!navigator.onLine){status('Offline — changes remain on this device.');return}if(!force&&(document.hidden||editing())){queue(2500);return}
+  if(!user||blocked||busy||recoveryPending)return;if(!navigator.onLine){status('Offline — changes remain on this device.');return}if(!force&&(document.hidden||editing())){queue(2500);return}
   const uid=user.id;busy=true;status('Syncing…');
   try{
    for(let attempt=0;attempt<4;attempt++){
@@ -7763,35 +7766,49 @@ window.AuroraCloud=(()=>{
   channel=client.channel('aurora-'+user.id).on('postgres_changes',{event:'*',schema:'public',table:'aurora_state',filter:'user_id=eq.'+user.id},()=>queue(300)).subscribe();queue(100);
  }
  function mount(){
-  if($c('#cloudPanel'))return;const panel=document.createElement('section');panel.id='cloudPanel';panel.className='glass cloud-panel';panel.innerHTML='<h3>Account & sync</h3><p id="cloudAccount"></p><p class="cloud-status" id="cloudStatus" role="status" aria-live="polite"></p><div class="cloud-actions"><button class="btn" id="cloudLogin">Connect my devices</button><button class="btn" id="cloudSync" hidden>Sync now</button><button class="btn ghost" id="cloudLogout" hidden>Sign out</button></div>';
+  if($c('#cloudPanel'))return;const panel=document.createElement('section');panel.id='cloudPanel';panel.className='glass cloud-panel';panel.innerHTML='<h3>Account & sync</h3><p id="cloudAccount"></p><p class="cloud-status" id="cloudStatus" role="status" aria-live="polite"></p><div class="cloud-actions"><button class="btn" id="cloudLogin">Connect my devices</button><button class="btn" id="cloudSync" hidden>Sync now</button><button class="btn ghost" id="cloudPassword" hidden>Set password</button><button class="btn ghost" id="cloudLogout" hidden>Sign out</button></div>';
   $c('[data-acc="data"]').before(panel);
-  const d=document.createElement('dialog');d.id='cloudAuth';d.className='cloud-dialog';d.innerHTML='<h2>Your Aurora, everywhere.</h2><p>Use the same email on your phone and desktop. We will send you a secure sign-in link. Open it on the device you want to connect.</p><form id="cloudAuthForm"><label for="cloudEmail">Email</label><input id="cloudEmail" type="email" autocomplete="email" required><p class="cloud-message" id="cloudAuthMessage" role="status"></p><div class="cloud-actions"><button type="submit" class="primary" id="cloudSubmit">Email me a sign-in link</button><button type="button" id="cloudCancel">Close</button></div></form>';
+  const d=document.createElement('dialog');d.id='cloudAuth';d.className='cloud-dialog';d.setAttribute('aria-labelledby','cloudAuthTitle');d.innerHTML=`<h2 id="cloudAuthTitle">Your Aurora, everywhere.</h2><p id="cloudAuthHelp"></p><form id="cloudAuthForm"><div id="cloudEmailRow"><label for="cloudEmail">Email</label><input id="cloudEmail" type="email" autocomplete="username" required></div><div id="cloudPasswordRow"><label for="cloudPass">Password</label><input id="cloudPass" type="password" autocomplete="current-password" required></div><div id="cloudConfirmRow" hidden><label for="cloudConfirm">Repeat password</label><input id="cloudConfirm" type="password" autocomplete="new-password"></div><p class="cloud-message" id="cloudAuthMessage" role="status" aria-live="polite"></p><div class="cloud-actions"><button type="submit" class="primary" id="cloudSubmit">Sign in</button><button type="button" id="cloudCancel">Close</button></div><div class="cloud-auth-options"><button type="button" data-auth-mode="reset">Set or reset password</button><button type="button" data-auth-mode="magic">Use an email link</button><button type="button" data-auth-mode="login" hidden>Back to sign in</button></div></form>`;
   document.body.append(d);
+  let mode='login',authBusy=false,cooldown=0;
+  const message=text=>{$c('#cloudAuthMessage').textContent=text};
+  function authFailure(error){const text=error?.message||String(error);if(error?.code==='over_email_send_rate_limit'||/email rate limit/i.test(text))return 'Email sending is temporarily limited. Wait up to an hour before trying again. If you already have a password, choose Back to sign in.';if(error?.code==='over_request_rate_limit'||error?.status===429)return 'Too many attempts. Please wait before trying again.';if(/invalid login credentials/i.test(text))return 'Email or password is incorrect. If you previously used email links, choose Set or reset password first.';if(/email not confirmed/i.test(text))return 'Confirm your email before signing in.';if(/expired|invalid.*token|otp_expired/i.test(text))return 'This email link is no longer valid. Request a new one and open it only once.';if(!navigator.onLine||/fetch|network/i.test(text))return 'Connection unavailable. Your local data is safe. Try again when online.';return text}
+  openAuth=(next='login')=>{if(authBusy)return;mode=next;message('');const setting=mode==='password',login=mode==='login';$c('#cloudAuthTitle').textContent=setting?'Set your password.':'Your Aurora, everywhere.';$c('#cloudAuthHelp').textContent=setting?'Use this password with the same email on your phone and desktop. At least 8 characters.':login?'Sign in with the same email and password on both devices. You stay signed in; changes sync automatically.':mode==='reset'?'Already used an email link? Set a password for that same account. We will send one recovery email; ordinary sign-ins will not need email.':'Open the link once, on this device. Each device needs its own link.';$c('#cloudEmailRow').hidden=setting;$c('#cloudEmail').disabled=setting;$c('#cloudPasswordRow').hidden=!(setting||login);$c('#cloudPass').disabled=!(setting||login);$c('#cloudPass').value='';$c('#cloudPass').minLength=setting?8:1;$c('#cloudPass').autocomplete=setting?'new-password':'current-password';$c('#cloudConfirmRow').hidden=!setting;$c('#cloudConfirm').disabled=!setting;$c('#cloudConfirm').required=setting;$c('#cloudConfirm').value='';$c('#cloudSubmit').textContent=setting?'Save password':login?'Sign in':mode==='reset'?'Send recovery email':'Email me a sign-in link';d.querySelector('.cloud-auth-options').hidden=setting;d.querySelectorAll('[data-auth-mode]').forEach(button=>button.hidden=setting||(login?button.dataset.authMode==='login':button.dataset.authMode!=='login'));if(!d.open)d.showModal();(setting?$c('#cloudPass'):$c('#cloudEmail')).focus()};
+  d.querySelectorAll('[data-auth-mode]').forEach(button=>button.onclick=()=>openAuth(button.dataset.authMode));
+  d.addEventListener('close',()=>{$c('#cloudPass').value='';$c('#cloudConfirm').value='';if(recoveryPending){recoveryPending=false;queue(100)}});
+  d.addEventListener('cancel',event=>{if(authBusy)event.preventDefault()});
+  $c('#cloudAuthForm').onsubmit=async event=>{event.preventDefault();if(authBusy)return;authBusy=true;d.querySelectorAll('button').forEach(button=>button.disabled=true);message('Connecting…');try{
+   if(!client)throw Error('Connection is unavailable. Try reloading the app.');
+   const email=$c('#cloudEmail').value.trim(),password=$c('#cloudPass').value;
+   if(mode==='login'){
+    const {data,error}=await client.auth.signInWithPassword({email,password});if(error)throw error;await sessionChanged(data.session);d.close();queue(100);
+   }else if(mode==='password'){
+    if(password.length<8)throw Error('Use at least 8 characters.');if(password!==$c('#cloudConfirm').value)throw Error('The passwords do not match.');
+    const {error}=await client.auth.updateUser({password});if(error)throw error;recoveryPending=false;d.close();toast('Password saved. Sign in on your other device with the same email and password.');queue(100);
+   }else{
+    if(Date.now()<cooldown)throw Error('Please wait a minute before requesting another email.');
+    const host=window.parent.location;if(!/^https?:$/.test(host.protocol))throw Error('Open the hosted app to sign in. Email links do not work with a downloaded file.');
+    const redirect=host.origin+host.pathname;
+    const {error}=mode==='reset'?await client.auth.resetPasswordForEmail(email,{redirectTo:redirect}):await client.auth.signInWithOtp({email,options:{emailRedirectTo:redirect,shouldCreateUser:false}});
+    if(error)throw error;cooldown=Date.now()+60000;message(mode==='reset'?'If this email has an account, a recovery link is on its way. Open it on this device to choose your password.':'Check your inbox and open the newest sign-in link once, on this device.');
+   }
+  }catch(error){message(authFailure(error))}finally{authBusy=false;d.querySelectorAll('button').forEach(button=>button.disabled=false);if(!d.open){$c('#cloudPass').value='';$c('#cloudConfirm').value=''}}};
   const c=document.createElement('dialog');c.id='cloudConflict';c.className='cloud-dialog';c.innerHTML='<h2>Two edits, one place.</h2><p>The same fields changed on both devices. Choose which version to keep for these conflicts. Other changes will be combined.</p><pre class="cloud-conflicts" id="cloudConflictDetails"></pre><div class="cloud-actions"><button data-choice="local">Keep this device’s edits</button><button data-choice="cloud">Keep cloud edits</button><button data-choice="">Decide later</button></div>';document.body.append(c);
-  $c('#cloudLogin').onclick=()=>{d.showModal();$c('#cloudEmail').focus()};$c('#cloudCancel').onclick=()=>d.close();
+  $c('#cloudLogin').onclick=()=>openAuth();$c('#cloudPassword').onclick=()=>openAuth('password');$c('#cloudCancel').onclick=()=>d.close();
   $c('#cloudSync').onclick=()=>{if(blocked&&last.includes('another account'))return;blocked=false;sync(true)};
   $c('#cloudLogout').onclick=async()=>{if(busy){status('Please wait for the current sync to finish.');return}const {error}=await client.auth.signOut({scope:'local'});if(error)status(failure(error));else await sessionChanged(null)};
-  let cooldown=0;
-  $c('#cloudAuthForm').onsubmit=async e=>{e.preventDefault();const btn=$c('#cloudSubmit');btn.disabled=true;try{
-   if(!client)throw Error('Connection is unavailable. Try reloading the app.');
-   if(Date.now()<cooldown)throw Error('Please wait a minute before requesting another email.');
-   const host=window.parent.location;
-   if(!/^https?:$/.test(host.protocol))throw Error('Open the hosted app to sign in. Email links do not work with a downloaded file.');
-   const {error}=await client.auth.signInWithOtp({email:$c('#cloudEmail').value.trim(),options:{emailRedirectTo:host.origin+host.pathname}});
-   if(error)throw error;cooldown=Date.now()+60000;
-   $c('#cloudAuthMessage').textContent='Check your inbox and open the sign-in link on this device. You can close this window.';
-  }catch(err){$c('#cloudAuthMessage').textContent=err.message}finally{btn.disabled=false}};
   // Wiping is explicitly local; require sign-out so an empty state cannot reach the cloud.
   document.addEventListener('click',e=>{if(e.target.closest('#wipeBtn')&&user){e.preventDefault();e.stopImmediatePropagation();toast('Sign out before erasing the local copy. Your cloud data will stay safe.')}},true);
   status(last);
  }
- async function start(){if(started)return;started=true;mount();try{client=window.AURORA_CLOUD_CLIENT_FACTORY?window.AURORA_CLOUD_CLIENT_FACTORY():supabase.createClient(cfg.url,cfg.key,{auth:{storageKey:'aurora-cloud-session-v1',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});client.auth.onAuthStateChange((_event,session)=>setTimeout(()=>sessionChanged(session).catch(e=>status(failure(e))),0));const returned=window.parent.AURORA_AUTH_RETURN;window.parent.AURORA_AUTH_RETURN=null;
+ async function start(){if(started)return;started=true;mount();const returned=window.parent.AURORA_AUTH_RETURN;window.parent.AURORA_AUTH_RETURN=null;recoveryPending=returned?.type==='recovery'&&!returned.error;try{client=window.AURORA_CLOUD_CLIENT_FACTORY?window.AURORA_CLOUD_CLIENT_FACTORY():supabase.createClient(cfg.url,cfg.key,{auth:{storageKey:'aurora-cloud-session-v1',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});client.auth.onAuthStateChange((_event,session)=>setTimeout(()=>sessionChanged(session).catch(e=>status(failure(e))),0));
 if(returned?.error)throw Error(returned.error);
 if(returned?.access_token&&returned?.refresh_token){const {error:authError}=await client.auth.setSession({access_token:returned.access_token,refresh_token:returned.refresh_token});if(authError)throw authError;}
-const {data,error}=await client.auth.getSession();if(error)throw error;await sessionChanged(data.session);if(!user)status('Saved on this device · not signed in');}catch(e){status(failure(e))}}
+const {data,error}=await client.auth.getSession();if(error)throw error;await sessionChanged(data.session);if(recoveryPending&&user)openAuth('password');else recoveryPending=false;if(!user)status('Saved on this device · not signed in');}catch(e){recoveryPending=false;status(failure(e))}}
  addEventListener('online',()=>queue(100));setInterval(()=>{if(user&&!blocked&&!document.hidden)sync()},8000);
  return {start,sync,status:()=>last,isConnected:()=>!!user,mediaIds};
 })();
+
 
 </script><script data-source="mobile-intro.js">
 /* Static identity preview. Motion is deferred; keep the entry and sizing API. */
