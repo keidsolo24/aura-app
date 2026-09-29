@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-release="aurora-release-20260929-12" lang="en" class="booting preapp">
+<html data-release="aurora-release-20260929-13" lang="en" class="booting preapp">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
@@ -7708,6 +7708,44 @@ globalThis.AuroraMerge=(()=>{
  return {merge,equal};
 })();
 
+</script><script data-source="cloud-media.js">
+/* Private media objects stay below the bucket's per-object size limit.
+   A manifest is committed with application state only after every part exists. */
+window.AuroraMediaTransfer=(()=>{
+ const PART=4*1024*1024,INLINE=48*1024*1024;
+ const sha=async blob=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))).map(b=>b.toString(16).padStart(2,'0')).join('');
+ const object=(uid,id)=>uid+'/'+encodeURIComponent(String(id));
+ const partPath=(uid,id,version,i)=>object(uid,id)+'/parts/'+version+'/'+i;
+ async function prepare(blob){
+  if(blob.size<=INLINE)return{digest:await sha(blob),manifest:null};
+  const hashes=[];for(let offset=0;offset<blob.size;offset+=PART)hashes.push(await sha(blob.slice(offset,offset+PART)));
+  const type=blob.type||'video/mp4';const version=await sha(new Blob([JSON.stringify({size:blob.size,type,hashes})]));
+  return{digest:version,manifest:{format:'aurora-parts-v1',size:blob.size,type,partSize:PART,hashes,version}};
+ }
+ async function upload(bucket,uid,id,blob,prepared,db,active,progress){
+  const m=prepared.manifest;
+  if(!m){if(!active())throw Error('Account changed');const {error}=await bucket.upload(object(uid,id),blob,{upsert:true,contentType:blob.type||'application/octet-stream'});if(error)throw error;return}
+  for(let i=0;i<m.hashes.length;i++){
+   if(!active())throw Error('Account changed');progress(i+1,m.hashes.length);
+   const cache='cloud-part:'+uid+':'+encodeURIComponent(String(id))+':'+m.version+':'+i;
+   if(await db.get('kv',cache))continue;
+   const chunk=blob.slice(i*PART,Math.min((i+1)*PART,blob.size),m.type);
+   const {error}=await bucket.upload(partPath(uid,id,m.version,i),chunk,{upsert:true,contentType:m.type});if(error)throw error;
+   if(!active())throw Error('Account changed');await db.set('kv',cache,true);
+  }
+ }
+ async function download(bucket,uid,id,m,active){
+  if(!m){const {data,error}=await bucket.download(object(uid,id));if(error)throw error;return data}
+  if(m.format!=='aurora-parts-v1'||m.partSize!==PART||!Number.isSafeInteger(m.size)||m.size<=INLINE||!Array.isArray(m.hashes)||m.hashes.length!==Math.ceil(m.size/PART)||m.hashes.length>4096||!m.hashes.every(x=>/^[a-f0-9]{64}$/.test(x))||!/^[a-f0-9]{64}$/.test(m.version)||typeof m.type!=='string')throw Error('Invalid cloud media description.');
+  const parts=[];for(let i=0;i<m.hashes.length;i++){
+   if(!active())throw Error('Account changed');const {data,error}=await bucket.download(partPath(uid,id,m.version,i));if(error)throw error;
+   if(!data||data.size!==Math.min(PART,m.size-i*PART)||await sha(data)!==m.hashes[i])throw Error('Media transfer is incomplete. Please retry.');parts.push(data);
+  }
+  return new Blob(parts,{type:m.type});
+ }
+ return{prepare,upload,download};
+})();
+
 </script><script data-source="cloud-sync.js">
 /* Account-scoped, local-first sync. No administrative key belongs in this file. */
 window.AuroraCloud=(()=>{
@@ -7722,10 +7760,22 @@ window.AuroraCloud=(()=>{
  const localSave=Store.save;
  Store.save=function(){const result=localSave.apply(this,arguments);Promise.resolve(result).then(()=>{if(window.AURORA_SAVE_STATE!=='error')queue()});return result};
  const localMedia=Store.media.get;
- Store.media.get=async id=>{const own=await localMedia(id);if(own||!user||blocked||!client)return own;try{const {data,error}=await client.storage.from('aurora-media').download(path(id));if(error)throw error;await DB.set('images',id,data);return data}catch(e){status(failure(e));return null}};
+ const mediaLoads=new Map();
+ Store.media.get=async id=>{const own=await localMedia(id);if(own||!user||blocked||!client)return own;const uid=user.id,key=uid+':'+id;if(mediaLoads.has(key))return mediaLoads.get(key);const job=(async()=>{try{const data=await AuroraMediaTransfer.download(client.storage.from('aurora-media'),uid,id,S.mediaFiles?.[id],()=>user?.id===uid);if(user?.id!==uid)return null;await DB.set('images',id,data);const digest=S.mediaFiles?.[id]?.version||(await AuroraMediaTransfer.prepare(data)).digest;await DB.set('kv','cloud-media:'+uid+':'+id,digest);return data}catch(e){status(failure(e));return null}finally{mediaLoads.delete(key)}})();mediaLoads.set(key,job);return job};
  function path(id){return user.id+'/'+encodeURIComponent(String(id))}
  function mediaIds(st){const ids=new Set();function walk(v){if(!v||typeof v!=='object'||v.del)return;for(const [k,x]of Object.entries(v)){if((k==='img'||k==='poster')&&typeof x==='string'&&x)ids.add(x);else if(typeof x==='object')walk(x)}}walk(st);return [...ids]}
- async function uploadMedia(st,uid,remote){const remoteIds=new Set(mediaIds(remote));for(const id of mediaIds(st)){if(user?.id!==uid)throw Error('Account changed');const blob=await localMedia(id);if(!blob){if(!remoteIds.has(id))throw Error("A referenced media file is missing on this device. Restore it or remove its reference before syncing.");continue}if(blob.size>52428800)throw Error('A media file exceeds the 50 MB limit. Keep it locally or replace it with a smaller file.');const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))).map(b=>b.toString(16).padStart(2,'0')).join('');const key='cloud-media:'+uid+':'+id;if(await DB.get('kv',key)===digest)continue;status('Uploading media…');const {error}=await client.storage.from('aurora-media').upload(path(id),blob,{upsert:true,contentType:blob.type||'application/octet-stream'});if(error)throw error;await DB.set('kv',key,digest)}}
+ async function uploadMedia(st,uid,remote){
+  const remoteIds=new Set(mediaIds(remote));
+  for(const id of mediaIds(st)){
+   if(user?.id!==uid)throw Error('Account changed');const blob=await localMedia(id);
+   if(!blob){if(!remoteIds.has(id))throw Error("A referenced media file is missing on this device. Restore it or remove its reference before syncing.");continue}
+   const prepared=await AuroraMediaTransfer.prepare(blob),key='cloud-media:'+uid+':'+id;
+   if(prepared.manifest){if(!st.mediaFiles)st.mediaFiles={};st.mediaFiles[id]=prepared.manifest}else if(st.mediaFiles)delete st.mediaFiles[id];
+   if(await DB.get('kv',key)===prepared.digest)continue;
+   status('Uploading media…');await AuroraMediaTransfer.upload(client.storage.from('aurora-media'),uid,id,blob,prepared,DB,()=>user?.id===uid,(part,total)=>status('Uploading media · '+part+' / '+total));
+   if(user?.id!==uid)throw Error('Account changed');await DB.set('kv',key,prepared.digest);
+  }
+ }
  function valid(st){return st&&typeof st==='object'&&st.v===SCHEMA&&st.settings&&['spaces','tasks','entries','habits','goals'].every(k=>Array.isArray(st[k]))}
  function choose(conflicts){return new Promise(resolve=>{const d=$c('#cloudConflict');$c('#cloudConflictDetails').textContent=conflicts.slice(0,12).map(x=>x.path+'\nThis device: '+JSON.stringify(x.local)+'\nCloud: '+JSON.stringify(x.cloud)).join('\n\n');let done=false;const finish=v=>{if(done)return;done=true;d.close();d.oncancel=null;resolve(v)};d.querySelectorAll('[data-choice]').forEach(b=>b.onclick=()=>finish(b.dataset.choice));d.oncancel=e=>{e.preventDefault();finish(null)};d.showModal()})}
  async function sync(force=false){
@@ -7736,7 +7786,7 @@ window.AuroraCloud=(()=>{
     const {data:row,error}=await client.from('aurora_state').select('state,revision').eq('user_id',uid).maybeSingle();if(error)throw error;if(user?.id!==uid)return;
     const remote=row?.state,revision=row?.revision||0;if(remote&&!valid(remote))throw Error('This cloud account uses another app version. Update Aurora before syncing.');
     const local=copy(S);let result;
-    if(!remote)result={state:local,conflicts:[]};
+    if(!remote)result={state:copy(local),conflicts:[]};
     else if(!base&&!content(local))result={state:copy(remote),conflicts:[]};
     else result=merge.merge(base||defaultState(),local,remote);
     if(result.conflicts.length){status('Choose how to resolve simultaneous edits');const choice=await choose(result.conflicts);if(!choice){blocked=true;status('Sync paused · tap Sync now to review conflicts');return}result=merge.merge(base||defaultState(),local,remote,choice)}
@@ -7808,6 +7858,7 @@ const {data,error}=await client.auth.getSession();if(error)throw error;await ses
  addEventListener('online',()=>queue(100));setInterval(()=>{if(user&&!blocked&&!document.hidden)sync()},8000);
  return {start,sync,status:()=>last,isConnected:()=>!!user,mediaIds};
 })();
+
 
 
 </script><script data-source="mobile-intro.js">
