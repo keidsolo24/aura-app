@@ -1,14 +1,15 @@
-# AURORA v2 — Liquid + Atmos
+# Aurora — test build, 5 October 2026
 
-Novy cisty vzhled podle platna v2 a 15 pravidel UI.
+Test app: https://keidsolo24.github.io/aura-app/
 
-## Nasazeni (GitHub Pages)
-Nahraj OBSAH teto slozky do repa misto verze 07.1 (index.html v rootu, vedle assets/, fonts/, icons/, manifest.webmanifest).
-Data zustanou: stejne uloziste (IndexedDB `aurora-test-local-v1`, SCHEMA 6) a stejny Supabase sync.
+Phone and desktop: launch screen → tutorial → first-time setup → Home, Spaces, Board and Plan. Existing local setup goes straight to the app after tapping the logo.
 
-## Uprava
-Zdroje jsou v `source/`:
-- v2.js / v2.css / app.html — nove obrazovky a vzhled
-- model.js, store.js, cloud-*.js, supabase.js — datova vrstva z 07.1 (beze zmen)
-- intro.js — Aurora Intro
-Po zmene spust `python build.py` a nahraj novy index.html.
+Open Settings → account/sync. Create an account and confirm the email once, or sign in to an existing account. Use the same account on both devices. Guest mode saves only on the current device.
+
+This test uses `aurora_test_state_v13` and `aurora_test_commit_v13` with account-scoped row-level security. Older schema-6 cloud data remains in its original table; it is not automatically imported into this clean test. Media uses the existing private `aurora-media` bucket, with multipart transfer for large files. Do not put administrative keys in this static site.
+
+The mobile and desktop tutorial soundtracks use the supplied K9 beat, mastered quietly. User-selected card colours remain available. The old purple and green background choices have been removed.
+
+All files in this release folder belong in the repository root. Relative paths work under the GitHub Pages repository URL. `supabase-test-v13.sql` documents the additive backend setup already applied for this release. Build source is maintained in the local Aurora workspace.
+
+Testing: automated first-run/resume/returning flows, responsive layouts, simulated two-device sync, offline recovery, media round-trip, large-media chunk verification. Physical iOS/Android and real email delivery still need user acceptance testing. App copy currently includes English and Czech; full localisation is not complete.
