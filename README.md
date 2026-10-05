@@ -12,4 +12,6 @@ The mobile and desktop tutorial soundtracks use the supplied K9 beat, mastered q
 
 All files in this release folder belong in the repository root. Relative paths work under the GitHub Pages repository URL. `supabase-test-v13.sql` documents the additive backend setup already applied for this release. Build source is maintained in the local Aurora workspace.
 
-Testing: automated first-run/resume/returning flows, responsive layouts, simulated two-device sync, offline recovery, media round-trip, large-media chunk verification. Physical iOS/Android and real email delivery still need user acceptance testing. App copy currently includes English and Czech; full localisation is not complete.
+English is the default interface language. Choose Czech in Settings → Language; the choice stays on this device. User-written card names, notes and other content are never translated. The tutorial video is in English.
+
+Testing: automated first-run/resume/returning flows, responsive layouts, simulated two-device sync, offline recovery, media round-trip, large-media chunk verification. Physical iOS/Android and real email delivery still need user acceptance testing.

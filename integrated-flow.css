@@ -36,3 +36,5 @@
 @keyframes landing-word-refined{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
 @keyframes landing-flow-refined{from{transform:translate(-.6%,-.8%) scale(1.025)}to{transform:translate(.8%,1%) scale(1.065)}}
 @media(prefers-reduced-motion:reduce){.aurora-landing .landing-field,.aurora-landing .landing-word,.aurora-landing .landing-hint{animation:none}}
+/* Dates such as Tomorrow need their full width in the compact upcoming rows. */
+.item[data-a="pd"] > .sub:first-child{width:auto!important;min-width:64px;flex-shrink:0}
